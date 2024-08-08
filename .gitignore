@@ -1,3 +1,14 @@
+# Virtual environment
+venv/
+lurkbotEnv/
+ENV/
+env/
+venv.bak/
+env.bak/
+
+# Data files
+data.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
