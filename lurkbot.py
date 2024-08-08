@@ -178,7 +178,7 @@ async def remove_thread(ctx):
     save_data()
     await ctx.send("Stopped tracking the current thread.")
 
-@tasks.loop(minutes=3)
+@tasks.loop(minutes=1)
 async def check_thread():
     try:
         if 'thread_id' not in tracked_thread or 'board' not in tracked_thread:
