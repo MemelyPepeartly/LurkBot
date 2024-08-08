@@ -17,17 +17,19 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 tracked_thread = {}
 dm_users = []
 update_channels = []
+user_settings = {}
 last_post = {}
 
 # JSON data handling functions
 def load_data():
-    global tracked_thread, dm_users, update_channels
+    global tracked_thread, dm_users, update_channels, user_settings
     if os.path.exists('data.json'):
         with open('data.json', 'r') as f:
             data = json.load(f)
             tracked_thread = data.get('tracked_thread', {})
             dm_users = data.get('dm_users', [])
             update_channels = data.get('update_channels', [])
+            user_settings = data.get('user_settings', {})
             # Ensure post_count is initialized
             if 'post_count' not in tracked_thread:
                 tracked_thread['post_count'] = 0
@@ -35,10 +37,11 @@ def load_data():
         tracked_thread = {}
         dm_users = []
         update_channels = []
+        user_settings = {}
 
 def save_data():
     with open('data.json', 'w') as f:
-        json.dump({'tracked_thread': tracked_thread, 'dm_users': dm_users, 'update_channels': update_channels}, f)
+        json.dump({'tracked_thread': tracked_thread, 'dm_users': dm_users, 'update_channels': update_channels, 'user_settings': user_settings}, f)
 
 def clean_html(raw_html):
     clean_text = re.sub(r'<.*?>', '', raw_html)
@@ -61,10 +64,11 @@ def create_reply_links(board, thread_id, post_id):
     base_url = f"https://boards.4chan.org/{board}/thread/{thread_id}#p{post_id}"
     return base_url
 
-async def notify_users(embed):
+async def notify_users(embed, post_updates=True):
     for user_id in dm_users:
-        user = await bot.fetch_user(user_id)
-        await user.send(embed=embed)
+        if post_updates or (user_id in user_settings and not user_settings[user_id].get('post_updates', True)):
+            user = await bot.fetch_user(user_id)
+            await user.send(embed=embed)
 
 async def notify_channels(embed):
     for channel_id in update_channels:
@@ -72,9 +76,9 @@ async def notify_channels(embed):
         if channel:
             await channel.send(embed=embed)
 
-async def send_notification(embed, inform_users=True, inform_channels=True):
+async def send_notification(embed, inform_users=True, inform_channels=True, post_updates=True):
     if inform_users:
-        await notify_users(embed)
+        await notify_users(embed, post_updates=post_updates)
     if inform_channels:
         await notify_channels(embed)
 
@@ -178,7 +182,16 @@ async def remove_thread(ctx):
     save_data()
     await ctx.send("Stopped tracking the current thread.")
 
-@tasks.loop(minutes=1)
+@bot.command()
+async def set_user_setting(ctx, user: discord.User, setting: str, value: str):
+    """Command to set a user setting."""
+    if user.id not in user_settings:
+        user_settings[user.id] = {}
+    user_settings[user.id][setting] = value.lower() in ['true', 'yes', '1', 'on']
+    save_data()
+    await ctx.send(f'Setting {setting} for {user.name} set to {value}.')
+
+@tasks.loop(minutes=3)
 async def check_thread():
     try:
         if 'thread_id' not in tracked_thread or 'board' not in tracked_thread:
@@ -204,35 +217,33 @@ async def check_thread():
                 tracked_thread['last_post_num'] = new_posts[-1]['no']
                 tracked_thread['post_count'] = len(thread_data['posts'])  # Update post count based on total posts in the thread
                 save_data()
-                for user_id in dm_users:
-                    user = await bot.fetch_user(user_id)
-                    for post in new_posts:
-                        content = format_post_content(post, board, thread_id)
-                        reply_link = create_reply_links(board, thread_id, post['no'])
-                        post_number = thread_data['posts'].index(post) + 1  # Calculate post number based on its index in the thread
-                        color = discord.Color.blue()
-                        if post_number >= 450:
-                            color = discord.Color.orange()
-                        if post_number >= 500:
-                            color = discord.Color.red()
-                        embed = discord.Embed(title=f"New post in /{board}/ thread {thread_id}",
-                                              description=content,
-                                              color=color,
-                                              url=reply_link)
-                        embed.add_field(name="Post Link", value=f"[Go to Post]({reply_link})", inline=False)
-                        if 'tim' in post and 'ext' in post:
-                            image_url = f'https://i.4cdn.org/{board}/{post["tim"]}{post["ext"]}'
-                            embed.set_image(url=image_url)
-                        embed.set_footer(text=f"Post ID: {post['no']} • Post Number: {post_number}")
-                        await user.send(embed=embed)
-                        # Store the last post for reposting
-                        last_post['title'] = embed.title
-                        last_post['description'] = embed.description
-                        last_post['color'] = embed.color
-                        last_post['url'] = embed.fields[0].value
-                        if 'tim' in post and 'ext' in post:
-                            last_post['image_url'] = image_url
-                        last_post['footer'] = embed.footer.text
+                for post in new_posts:
+                    content = format_post_content(post, board, thread_id)
+                    reply_link = create_reply_links(board, thread_id, post['no'])
+                    post_number = thread_data['posts'].index(post) + 1  # Calculate post number based on its index in the thread
+                    color = discord.Color.blue()
+                    if post_number >= 450:
+                        color = discord.Color.orange()
+                    if post_number >= 500:
+                        color = discord.Color.red()
+                    embed = discord.Embed(title=f"New post in /{board}/ thread {thread_id}",
+                                          description=content,
+                                          color=color,
+                                          url=reply_link)
+                    embed.add_field(name="Post Link", value=f"[Go to Post]({reply_link})", inline=False)
+                    if 'tim' in post and 'ext' in post:
+                        image_url = f'https://i.4cdn.org/{board}/{post["tim"]}{post["ext"]}'
+                        embed.set_image(url=image_url)
+                    embed.set_footer(text=f"Post ID: {post['no']} • Post Number: {post_number}")
+                    await send_notification(embed, post_updates=True)
+                    # Store the last post for reposting
+                    last_post['title'] = embed.title
+                    last_post['description'] = embed.description
+                    last_post['color'] = embed.color
+                    last_post['url'] = embed.fields[0].value
+                    if 'tim' in post and 'ext' in post:
+                        last_post['image_url'] = image_url
+                    last_post['footer'] = embed.footer.text
 
                 if not tracked_thread['notified_450'] and len(thread_data['posts']) >= 450:
                     tracked_thread['notified_450'] = True
@@ -240,7 +251,7 @@ async def check_thread():
                     embed = discord.Embed(title=f"Thread /{board}/ {thread_id} Notification",
                                           description="Thread has reached 450 posts.",
                                           color=discord.Color.orange())
-                    await send_notification(embed)
+                    await send_notification(embed, post_updates=False)
 
                 if not tracked_thread['notified_500'] and len(thread_data['posts']) >= 500:
                     tracked_thread['notified_500'] = True
@@ -248,7 +259,7 @@ async def check_thread():
                     embed = discord.Embed(title=f"Thread /{board}/ {thread_id} Notification",
                                           description="Thread has reached 500 posts.",
                                           color=discord.Color.red())
-                    await send_notification(embed)
+                    await send_notification(embed, post_updates=False)
         else:
             embed = discord.Embed(title="Error", description=f"Failed to retrieve thread {thread_id} with status code {response.status_code}", color=discord.Color.red())
             await send_notification(embed)

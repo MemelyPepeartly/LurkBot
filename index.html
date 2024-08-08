@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LurkBot Commands</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+        }
+        .command {
+            background: #f4f4f4;
+            padding: 10px;
+            border-left: 3px solid #ccc;
+            margin-bottom: 10px;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>LurkBot</h1>
+    <p>LurkBot is a Discord bot designed to track 4chan threads and provide updates. Below you'll find a list of available commands and their usage.</p>
+
+    <h2>Commands</h2>
+
+    <div class="command">
+        <h3><code>!track &lt;thread_url&gt;</code></h3>
+        <p>Starts tracking a specified 4chan thread.</p>
+        <p><strong>Usage:</strong></p>
+        <code>!track https://boards.4chan.org/po/thread/12345678</code>
+    </div>
+
+    <div class="command">
+        <h3><code>!add_user @username</code></h3>
+        <p>Adds a user to the DM list to receive updates.</p>
+        <p><strong>Usage:</strong></p>
+        <code>!add_user @username</code>
+    </div>
+
+    <div class="command">
+        <h3><code>!remove_user @username</code></h3>
+        <p>Removes a user from the DM list.</p>
+        <p><strong>Usage:</strong></p>
+        <code>!remove_user @username</code>
+    </div>
+
+    <div class="command">
+        <h3><code>!add_channel #channelname</code></h3>
+        <p>Adds a channel to the update list.</p>
+        <p><strong>Usage:</strong></p>
+        <code>!add_channel #channelname</code>
+    </div>
+
+    <div class="command">
+        <h3><code>!remove_channel #channelname</code></h3>
+        <p>Removes a channel from the update list.</p>
+        <p><strong>Usage:</strong></p>
+        <code>!remove_channel #channelname</code>
+    </div>
+
+    <div class="command">
+        <h3><code>!bot_status</code></h3>
+        <p>Checks the status of the bot.</p>
+        <p><strong>Usage:</strong></p>
+        <code>!bot_status</code>
+    </div>
+
+    <div class="command">
+        <h3><code>!repost_last</code></h3>
+        <p>Reposts the last tracked post.</p>
+        <p><strong>Usage:</strong></p>
+        <code>!repost_last</code>
+    </div>
+
+    <div class="command">
+        <h3><code>!remove_thread</code></h3>
+        <p>Stops tracking the current thread.</p>
+        <p><strong>Usage:</strong></p>
+        <code>!remove_thread</code>
+    </div>
+
+    <div class="command">
+        <h3><code>!set_user_setting @username &lt;setting&gt; &lt;value&gt;</code></h3>
+        <p>Sets a user-specific setting.</p>
+        <p><strong>Usage:</strong></p>
+        <code>!set_user_setting @username post_updates false</code>
+    </div>
+
+    <h2>User Settings</h2>
+
+    <div class="command">
+        <h3><code>post_updates</code></h3>
+        <p><strong>true</strong> or <strong>false</strong></p>
+        <p>When set to <strong>false</strong>, the user will only receive bump limit updates at 450 and 500 posts.</p>
+        <p><strong>Example:</strong></p>
+        <code>!set_user_setting @username post_updates false</code>
+    </div>
+
+    <h2>Notifications</h2>
+    <p><strong>Yellow:</strong> Thread has reached 450 posts.</p>
+    <p><strong>Red:</strong> Thread has reached 500 posts.</p>
+    <p><strong>Green:</strong> Bot has restarted.</p>
+
+    <h2>Error Handling</h2>
+    <p>If the bot encounters an error, it will notify users and channels with a red error embed.</p>
+
+    <h2>License</h2>
+    <p>This project is licensed under the MIT License.</p>
+</body>
+</html>
